@@ -7,6 +7,7 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 app.use(cors());
+app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
 
@@ -25,6 +26,7 @@ async function run() {
 
     const db = client.db('mediqueuedb');
     const tutorsCollection = db.collection('tutors');
+    const myTutorsCollection = db.collection('myTutors');
 
     app.get('/tutors', async (req, res) => {
       const result = await tutorsCollection.find().toArray();
@@ -42,6 +44,17 @@ async function run() {
       const result = await tutorsCollection.findOne({
         _id: new ObjectId(id),
       });
+      res.json(result);
+    })
+
+    app.get('/my-tutors', async (req, res) => {
+      const result = await myTutorsCollection.find().toArray();
+      res.json(result);
+    })
+
+    app.post('/my-tutors', async (req, res) => {
+      const tutorData = req.body;
+      const result = await myTutorsCollection.insertOne(tutorData);
       res.json(result);
     })
 
