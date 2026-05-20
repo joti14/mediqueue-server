@@ -1,7 +1,7 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const cors = require('cors');
+const express = require("express");
+const dotenv = require("dotenv");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const cors = require("cors");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
@@ -17,77 +17,96 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
     await client.connect();
 
-    const db = client.db('mediqueuedb');
-    const tutorsCollection = db.collection('tutors');
-    const myTutorsCollection = db.collection('myTutors');
+    const db = client.db("mediqueuedb");
+    const tutorsCollection = db.collection("tutors");
+    const myTutorsCollection = db.collection("myTutors");
 
-    app.get('/tutors', async (req, res) => {
+    app.get("/tutors", async (req, res) => {
       const result = await tutorsCollection.find().toArray();
       res.json(result);
-    })
+    });
 
-    app.get('/featured-tutors', async (req, res) => {
+    app.get("/featured-tutors", async (req, res) => {
       const result = await tutorsCollection.find().limit(6).toArray();
       res.json(result);
-    })
+    });
 
-    app.get('/tutors/:id', async (req, res) => {
-      const {id} = req.params;
+    app.get("/tutors/:id", async (req, res) => {
+      const { id } = req.params;
 
       const result = await tutorsCollection.findOne({
         _id: new ObjectId(id),
       });
       res.json(result);
-    })
+    });
 
-    app.get('/my-tutors', async (req, res) => {
+    app.get("/my-tutors", async (req, res) => {
       const result = await myTutorsCollection.find().toArray();
       res.json(result);
-    })
+    });
 
-    app.post('/my-tutors', async (req, res) => {
+    app.post("/my-tutors", async (req, res) => {
       const tutorData = req.body;
       const result = await myTutorsCollection.insertOne(tutorData);
       res.json(result);
-    })
+    });
 
-    app.patch('/my-tutors/:id', async (req, res) => {
-      const {id} = req.params;
+    app.patch("/my-tutors/:id", async (req, res) => {
+      const { id } = req.params;
       const updatedData = req.body;
 
       const result = await myTutorsCollection.updateOne(
-        {_id: new ObjectId(id)},
-        {$set: updatedData}
-      )
-      res.json(result)
-    })
-
-    app.delete('/my-tutors/:id', async (req, res) => {
-      const {id} = req.params;
-      const result = await myTutorsCollection.deleteOne({_id: new ObjectId(id)});
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
       res.json(result);
-    })
+    });
+
+    app.post("/my-tutors/:id", async (req, res) => {
+      const { id } = req.params;        
+        const bookingData = req.body;
+
+      const result = await myTutorsCollection.insertOne(bookingData);
+
+      if (id) {
+        await tutorsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $inc: { remainingSlots: -1 } },
+        );
+      }
+
+      res.json(result);
+    });
+
+    app.delete("/my-tutors/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await myTutorsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.json(result);
+    });
 
     // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!",
+    );
   } finally {
     // await client.close();
   }
 }
 run().catch(console.dir);
 
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-})
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
-})
+});
