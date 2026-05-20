@@ -8,7 +8,7 @@ const port = process.env.PORT || 8000;
 
 app.use(cors());
 
-const uri = "mongodb+srv://mediqueue:Hmf0fadzhc39IkFL@cluster0.u7ckqg9.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -28,6 +28,11 @@ async function run() {
 
     app.get('/tutors', async (req, res) => {
       const result = await tutorsCollection.find().toArray();
+      res.json(result);
+    })
+
+    app.get('/featured-tutors', async (req, res) => {
+      const result = await tutorsCollection.find().limit(6).toArray();
       res.json(result);
     })
 
