@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
@@ -18,7 +19,32 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
+  autoSelectFamily: false,
+  serverSelectionTimeoutMS: 15000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
 });
+
+const JWKS = createRemoteJWKSet(new URL("http://localhost:3000/api/auth/jwks"));
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    console.log(payload);
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
 
 async function run() {
   try {
@@ -38,7 +64,7 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/tutors/:id", async (req, res) => {
+    app.get("/tutors/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
 
       const result = await tutorsCollection.findOne({
@@ -47,18 +73,18 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/my-tutors", async (req, res) => {
+    app.get("/my-tutors", verifyToken, async (req, res) => {
       const result = await myTutorsCollection.find().toArray();
       res.json(result);
     });
 
-    app.post("/my-tutors", async (req, res) => {
+    app.post("/my-tutors", verifyToken, async (req, res) => {
       const tutorData = req.body;
       const result = await myTutorsCollection.insertOne(tutorData);
       res.json(result);
     });
 
-    app.patch("/my-tutors/:id", async (req, res) => {
+    app.patch("/my-tutors/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const updatedData = req.body;
 
@@ -70,8 +96,8 @@ async function run() {
     });
 
     app.post("/my-tutors/:id", async (req, res) => {
-      const { id } = req.params;        
-        const bookingData = req.body;
+      const { id } = req.params;
+      const bookingData = req.body;
 
       const result = await myTutorsCollection.insertOne(bookingData);
 
@@ -85,7 +111,7 @@ async function run() {
       res.json(result);
     });
 
-    app.delete("/my-tutors/:id", async (req, res) => {
+    app.delete("/my-tutors/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await myTutorsCollection.deleteOne({
         _id: new ObjectId(id),
@@ -93,7 +119,7 @@ async function run() {
       res.json(result);
     });
 
-    // await client.db("admin").command({ ping: 1 });
+    await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
