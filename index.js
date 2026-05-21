@@ -54,8 +54,38 @@ async function run() {
     const tutorsCollection = db.collection("tutors");
     const myTutorsCollection = db.collection("myTutors");
 
+    // app.get("/tutors", async (req, res) => {
+    //   const result = await tutorsCollection.find().toArray();
+    //   res.json(result);
+    // });
+
     app.get("/tutors", async (req, res) => {
-      const result = await tutorsCollection.find().toArray();
+      const search = req.query.search;
+      const startDate = req.query.startDate; 
+      const endDate = req.query.endDate; 
+
+      let query = {};
+
+      if (search && search.trim() !== "") {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { instructor: { $regex: search, $options: "i" } },
+          { category: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      if (startDate || endDate) {
+        query.sessionStartDate = {};
+        if (startDate) {
+          query.sessionStartDate.$gte = startDate;
+        }
+        if (endDate) {
+          query.sessionStartDate.$lte = endDate;
+        }
+      }
+
+      const result = await tutorsCollection.find(query).toArray();
       res.json(result);
     });
 
