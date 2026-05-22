@@ -61,8 +61,8 @@ async function run() {
 
     app.get("/tutors", async (req, res) => {
       const search = req.query.search;
-      const startDate = req.query.startDate; 
-      const endDate = req.query.endDate; 
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
 
       let query = {};
 
@@ -98,7 +98,7 @@ async function run() {
       const { id } = req.params;
 
       const result = await tutorsCollection.findOne({
-        _id: new ObjectId(id),
+        _id: id,
       });
       res.json(result);
     });
@@ -133,7 +133,7 @@ async function run() {
 
       if (id) {
         await tutorsCollection.updateOne(
-          { _id: new ObjectId(id) },
+          { _id: id }, 
           { $inc: { remainingSlots: -1 } },
         );
       }
